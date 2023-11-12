@@ -1,0 +1,384 @@
+---
+title: "TP2-ACP"
+author: "Cristian Salinas"
+date: "2023-11-11"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, warning = F, message=F}
+library(kableExtra)
+library(tidyverse)
+library(ggplot2)
+library(dplyr)
+library(readxl)
+library(GGally)
+library(corrplot)
+library(factoextra)
+library(ggcorrplot)
+```
+
+## Ejercicio 1
+
+```{r}
+M=matrix(c(3,1,1,1,3,1,1,1,5),nrow=3,byrow=TRUE)
+```
+
+```{r}
+M
+```
+
+a)  Hallar los autovalores y autovectores de la matriz de varianzas y covarian- zas.
+
+```{r}
+# Calcular los autovalores y autovectores
+eigen_values <- eigen(M)
+
+```
+
+```{r}
+# Mostrar los resultados
+autovalores = eigen_values$values  # Autovalores
+autovalores
+```
+
+```{r}
+autovectores = eigen_values$vectors # Autovectores
+autovectores
+```
+
+b)  Escribir la expresión de las componentes principales Y = (Y1,Y2, Y3)′ e indique que proporción de la variabilidad explica cada una de ellas.
+
+$Y_1=-0.4082483 X_1 - 0.4082483 X_2 -0.8164966 X_3$
+
+$Y_2= -0.5773503 X_1-0.5773503 X_2 +0.5773503 X_3$
+
+$Y_3= 0.7071068 X_1 -0.7071068 X_2 - X_3-1.347436e-16$
+
+Cada autovalor de la matriz de covarianza en un análisis de componentes principales representa la varianza (o la cantidad de variabilidad) capturada por su correspondiente componente principal. En el contexto de PCA, la suma total de todos los autovalores es igual a la varianza total de los datos originales. La proporción de la variabilidad total de los datos explicada por un componente principal específico se determina dividiendo el autovalor de ese componente principal por la suma de todos los autovalores.
+
+En términos matemáticos, si $\lambda_1, \lambda_2, \ldots, \lambda_n$ son los autovalores de la matriz de covarianza, entonces la proporción de la variabilidad explicada por el i-ésimo componente principal se calcula como:
+
+$$ \frac{\lambda_i}{\sum_{j=1}^{n} \lambda_j} $$
+
+```{r}
+data.frame(componentes = c('c1','c2','c3'),
+  Variabilidad = autovalores/sum(autovalores)) %>% 
+  mutate(Variabilidad_acc = cumsum(Variabilidad))
+```
+
+```{r}
+data.frame(componentes = c(1,2,3),
+  Variabilidad = autovalores/sum(autovalores)) %>% 
+  mutate(loading_acc = cumsum(Variabilidad)) %>% 
+  ggplot(aes(x= componentes, y = Variabilidad))+
+  geom_point()+geom_line()+theme_bw()
+```
+
+c)  Hallar los loadings de la primer componente principal.
+
+```{r}
+autovectores[,1] #loadings de la Componente 1
+```
+
+```{r}
+data.frame(loading = autovectores[,1], orden = seq(1,3,1))
+```
+
+```{r}
+data.frame(loading = autovectores[,1], orden = seq(1,3,1)) %>%
+  ggplot(aes(x=orden, y = loading, fill=as.factor(orden)))+
+  geom_bar(stat = "identity") +
+  theme_minimal() +
+  labs(title = "Loadings de la CP1", x = "Orden", y = "Loading")+
+  theme_bw()+
+  theme(legend.position = "none")
+
+```
+
+d)  Hallar los scores de las primeras dos componentes principales correspon- dientes a la observación X=(2,2,1).
+
+```{r}
+X = c(2,2,1)
+X
+```
+
+```{r}
+Y1= -0.4082483 * 2 -0.4082483 * 2 -0.8164966 * 1
+
+Y2= -0.5773503 * 2 -0.5773503 * 2 + 0.5773503 * 1
+```
+
+```{r}
+scores = as.vector((autovectores[,1:2] * X) %>% colSums())
+scores
+```
+
+```{r}
+for (i in seq(1:2) ){
+  print(paste0('Y', i, '=', scores[i]))
+ }
+```
+
+## Ejercicio 2. Considerando los datos de la base chalets.xls, se pide:
+
+```{r}
+chalets <- read_excel("chalets.xls")
+```
+
+```{r}
+colnames(chalets) = c('promotoraId', 'duracion', 'precio', 'superficie')
+```
+
+```{r}
+chalets = chalets %>% mutate( promotoraId = as.factor(promotoraId))
+chalets
+```
+
+a)  Graficar el boxplot de cada una de las variables. Indicar, si se observa, la presencia de valores atípicos.
+
+```{r}
+chalets %>% 
+  pivot_longer(cols=2:4, names_to='Variable', values_to='Valor') %>% 
+  ggplot(aes(y=Variable, x = Valor, fill=Variable))+
+  geom_boxplot()+
+  scale_fill_brewer(palette = "PuOr")+
+  geom_jitter(alpha=0.5, shape=21, color='black')+
+  geom_point(stat = 'summary', fun.data = mean_se, shape=12)+
+  scale_color_brewer(palette = "PuOr")+
+  theme_bw()+
+  facet_wrap(~Variable, ncol=1, scales = "free")
+```
+
+Variables Escaladas:
+
+```{r}
+chalets %>% 
+  mutate_if(is.numeric, scale) %>% 
+  pivot_longer(cols=2:4, names_to='Variable', values_to='Valor') %>% 
+  ggplot(aes(y=Variable, x = Valor, fill=Variable))+
+  geom_boxplot()+
+  scale_fill_brewer(palette = "PuOr")+
+  geom_jitter(alpha=0.5, shape=21, color='black')+
+  #geom_point(stat = 'summary', fun.x = 'mean')+
+  scale_color_brewer(palette = "PuOr")+
+  theme_bw()
+```
+
+```{r}
+chalets[,2:4] %>% summary()
+```
+Funcion para Valores Atipicos
+```{r}
+select_column <- function(dataframe, column_name) {
+  if (column_name %in% names(dataframe)) {
+    a = dataframe[[column_name]]
+   
+    q3 = quantile(a, 0.75)[[1]]
+    q1 = quantile(a, 0.25)[[1]]
+    riq = q3-q1
+    li_salvaje = (q1 - 1.5 * riq)
+    ls_salvaje = (q3 + 1.5 * riq )
+    li_severo = (q1 - 3 * riq)
+    ls_severo = (q3 + 3 * riq )
+    df = data.frame(Lim_outliers = c('Li_Salvaje','Ls_Salvaje', 'Li_Severo','Ls_Severo'), 
+                    valores = c(li_salvaje, ls_salvaje, li_severo, ls_severo ))
+    
+    tolerance = 1e-6
+    df2 = dataframe %>% mutate(Categoria = case_when(a < li_salvaje | a > ls_salvaje + tolerance ~ "Salvaje",
+                                         a < li_severo | a > ls_severo + tolerance ~ "Severo",
+                                         TRUE ~ "Normal")) %>% 
+      filter(Categoria != 'Normal') %>% 
+      #select(column_name, Categoria)
+      select(all_of(column_name), Categoria)
+    result = list(valores_criticos = df,
+                  df_filtrado = df2)
+    return(result)
+  } else {
+    stop("El nombre de la columna proporcionado no se encuentra en el dataframe.")
+  }
+}
+```
+
+```{r}
+select_column(chalets, 'duracion')$valores_criticos
+```
+
+```{r}
+select_column(chalets, 'duracion')$df_filtrado
+```
+
+```{r}
+select_column(chalets, 'precio')$valores_criticos
+```
+
+```{r}
+select_column(chalets, 'precio')$df_filtrado
+```
+
+```{r}
+select_column(chalets, 'superficie')$valores_criticos
+```
+
+```{r}
+select_column(chalets, 'superficie')$df_filtrado
+```
+
+b)  Graficar los diagramas de dispersión de las variables de a pares. Estimar la presencia de correlación entre variables a partir de estos gráficos, indicando si le parece fuerte y el signo de las mismas.
+
+```{r}
+chalets[,2:4] %>% ggpairs()
+```
+
+**Se aprecia correlación entre todos los pares de variables**
+
+c) Calcular el vector de medias y la matriz de varianzas y covarianzas muestral.
+```{r}
+chalets[,2:4] %>% 
+  summarise_all(mean) 
+```
+```{r}
+(chalets[,2:4] %>% 
+   summarise_all(mean)) %>% 
+  t() %>% 
+  as.vector()
+```
+
+```{r}
+cov(chalets[,2:4])
+```
+Tamaño del Problema = Suma de Varianzas de cada Variable.
+```{r}
+diag(cov(chalets[,2:4]))
+sum(diag(cov(chalets[,2:4])))
+```
+
+d) Hallar la matriz de correlación muestral. Verificar las estimaciones realizadas visualmente.
+
+```{r}
+cor(chalets[,2:4])
+```
+```{r}
+ggcorrplot(cor(chalets[,2:4]), hc.order = TRUE, outline.col = "white", lab = 'TRUE')
+```
+e)  A partir de estas observaciones, le parece razonable pensar en un análisis de componentes principales para reducir la dimensión del problema?.
+
+Coeficiente de Determinación.
+```{r}
+cor(chalets[,2:4])**2
+```
+
+**Si, se trata de variables con correlaciones moderadas a elevadas. Ademas, si elevamos al cuadrado los coef. de correlación obtenemos una aproximación al coeficiente de determinación R2 el cual tambien da valores elevados.**
+
+f) Hallar la primera componente principal y graficar sus coeficientes mediante barras verticales.
+```{r}
+acp = prcomp(chalets[,2:4])
+acp
+```
+El ACP contiene 5 elementos:
+
+1. sdev: Este elemento contiene las desviaciones estándar de las componentes principales. La longitud de este vector es igual al número de componentes principales. En PCA, las desviaciones estándar se relacionan con la cantidad de varianza que cada componente principal captura del conjunto de datos. Al elevar al cuadrado estos valores, se obtienen los autovalores de la matriz de covarianza o correlación utilizada en el PCA.
+
+2. rotation: También conocido como la matriz de carga, este elemento contiene los autovectores de la matriz de covarianza/correlación de los datos. Las columnas de esta matriz son los autovectores que corresponden a las componentes principales y que se utilizan para transformar los datos originales al espacio de las componentes principales.
+
+3. center: Al realizar PCA, es común centrar los datos restando la media de cada variable. Este elemento contiene las medias de las variables originales que se han restado durante el proceso de centrado. Si el argumento center = FALSE se utilizó en prcomp(), este componente no estará presente.
+
+4. scale:Si los datos fueron escalados (normalmente dividiendo por la desviación estándar de cada variable) antes de aplicar PCA, este elemento contendrá los factores de escala utilizados. El escalado se realiza para que todas las variables contribuyan por igual al análisis, independientemente de sus unidades de medida. Si el argumento scale. = FALSE se utilizó en prcomp(), este componente no estará presente.
+
+5. x: Contiene los datos originales proyectados en el espacio de las componentes principales, a veces denominados como puntuaciones de las componentes principales (scores). Cada columna es una componente principal y cada fila corresponde a una observación de los datos originales.
+
+```{r}
+acp %>% str()
+```
+```{r}
+print('sdev')
+acp$sdev
+print('rotation')
+acp$rotation
+print('center')
+acp$center
+print('scale')
+acp$scale
+print('x')
+acp$x
+```
+Para corroborar el analisis, la suma de los valores propios deberia ser igual a la suma de las varianzas.
+ACP devuelve los desvios de cada Componente por lo cual es necesario elevarlo al cuadrado.
+```{r}
+acp$sdev**2 %>% sum()
+```
+
+```{r}
+acp$rotation
+```
+```{r}
+acp$rotation[,1] %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  pivot_longer(cols = 1:3, values_to = 'LoadingCP1', names_to = 'variable') %>% 
+  ggplot(aes(x=variable, y=LoadingCP1, fill=variable))+
+  geom_bar(stat='identity', color='black')+
+  scale_fill_brewer(palette = "PuOr")+
+  theme_bw()
+  
+```
+g)  Indicar qué porcentaje de la variabilidad total logra explicar esta componente. Explicar si se trata de una componente de tamaño o de forma. Es posible ordenar las promotoras en función de esta componente?. Si la respuesta es afirmativa, cual es la mayor y cual la menor; si es negativa, explicar por qué no es posible ordenarlos.
+
+```{r}
+fviz_eig(acp, addlabels = T, ylim=c(0,120))
+```
+
+
+```{r}
+acp %>% summary()
+
+acp$rotation
+
+acp$x
+```
+**La componente principal 1 (PC1) logra explicar el 97.06% de la variabilidad total de los datos. Al ser todos los loadings positivos se trata de una componente de tamañano. **
+
+```{r}
+fviz_pca_biplot(acp, ylim=c(-4,4))
+```
+
+Para ordenar las promotoras segun la primer componente seria:
+```{r}
+data.frame(id=seq(1:10), cp1 =acp$x[,1]) %>% 
+  arrange(cp1)
+```
+```{r}
+data.frame(id=seq(1:10), cp1 =acp$x[,1]) %>% 
+  arrange(cp1) %>% ggplot(aes(x= cp1, y=0, label=id))+
+  geom_point()+
+  geom_text_repel(aes(label=id))+
+  geom_vline(xintercept = c(-4,-8,5), linetype = 2,
+             color = 2)+
+  theme_bw()
+```
+**Es posible agrupar las promotoras según lo manifestado por la CP1. La promotoras 10 y 8 se encuentras separadas del resto. Esto quiere decir que en terminos de superficie y duracion estas promotoras se destacan con clientes de propiedades grandes e hipotecas largas. De manera contraria la promotora 1 se encuentra alejada del comportamiento promedio en terminos negativos, con propiedades chicas y duraciones cortas. Por ultimo, las promotoras 3,4,5,7 son promotoras promedio.**
+
+```{r}
+library(ggrepel) #para etiquetas
+```
+
+Valores medios de las Variables
+```{r}
+acp$center
+```
+
+Para analizar el comportamiento bivariado se realizó un scaterplot entre las variables menos correlacionadas (superficie y duracion). Se puede observar que solo las promotoras 10 y 8 estan por encima de la media en ambas variables. Esto ratifica lo observado en la componente principal1. 
+```{r}
+chalets %>% ggplot(aes(x=superficie, y=duracion))+
+  geom_point()+
+  geom_text_repel(aes(label=promotoraId))+
+  theme_bw()+
+  geom_vline(xintercept = 9.73, linetype = 2,
+             color = 2)+
+  geom_hline(yintercept = 19.05, linetype = 2,
+             color = 2)
+```
+
