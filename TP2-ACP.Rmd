@@ -1,8 +1,15 @@
 ---
-title: "TP2-ACP"
+title: "TP2 Componentes Principales"
 author: "Cristian Salinas"
-date: "2023-11-11"
-output: html_document
+date: "2023-10-07"
+output: 
+  html_document:
+    toc: true     
+    toc_depth: 2           
+    toc_float: 
+      collapsed: false        
+      smooth_scroll: true         
+    
 ---
 
 ```{r setup, include=FALSE}
@@ -19,6 +26,7 @@ library(GGally)
 library(corrplot)
 library(factoextra)
 library(ggcorrplot)
+library(ggrepel) #para etiquetas
 ```
 
 ## Ejercicio 1
@@ -123,7 +131,8 @@ for (i in seq(1:2) ){
  }
 ```
 
-## Ejercicio 2. Considerando los datos de la base chalets.xls, se pide:
+## Ejercicio 2 
+Considerando los datos de la base chalets.xls, se pide:
 
 ```{r}
 chalets <- read_excel("chalets.xls")
@@ -171,7 +180,9 @@ chalets %>%
 ```{r}
 chalets[,2:4] %>% summary()
 ```
+
 Funcion para Valores Atipicos
+
 ```{r}
 select_column <- function(dataframe, column_name) {
   if (column_name %in% names(dataframe)) {
@@ -235,11 +246,13 @@ chalets[,2:4] %>% ggpairs()
 
 **Se aprecia correlación entre todos los pares de variables**
 
-c) Calcular el vector de medias y la matriz de varianzas y covarianzas muestral.
+c)  Calcular el vector de medias y la matriz de varianzas y covarianzas muestral.
+
 ```{r}
 chalets[,2:4] %>% 
   summarise_all(mean) 
 ```
+
 ```{r}
 (chalets[,2:4] %>% 
    summarise_all(mean)) %>% 
@@ -250,49 +263,57 @@ chalets[,2:4] %>%
 ```{r}
 cov(chalets[,2:4])
 ```
+
 Tamaño del Problema = Suma de Varianzas de cada Variable.
+
 ```{r}
 diag(cov(chalets[,2:4]))
 sum(diag(cov(chalets[,2:4])))
 ```
 
-d) Hallar la matriz de correlación muestral. Verificar las estimaciones realizadas visualmente.
+d)  Hallar la matriz de correlación muestral. Verificar las estimaciones realizadas visualmente.
 
 ```{r}
 cor(chalets[,2:4])
 ```
+
 ```{r}
 ggcorrplot(cor(chalets[,2:4]), hc.order = TRUE, outline.col = "white", lab = 'TRUE')
 ```
-e)  A partir de estas observaciones, le parece razonable pensar en un análisis de componentes principales para reducir la dimensión del problema?.
+
+e)   A partir de estas observaciones, le parece razonable pensar en un análisis de componentes principales para reducir la dimensión del problema?.
 
 Coeficiente de Determinación.
+
 ```{r}
 cor(chalets[,2:4])**2
 ```
 
 **Si, se trata de variables con correlaciones moderadas a elevadas. Ademas, si elevamos al cuadrado los coef. de correlación obtenemos una aproximación al coeficiente de determinación R2 el cual tambien da valores elevados.**
 
-f) Hallar la primera componente principal y graficar sus coeficientes mediante barras verticales.
+f)  Hallar la primera componente principal y graficar sus coeficientes mediante barras verticales.
+
 ```{r}
 acp = prcomp(chalets[,2:4])
 acp
 ```
+
 El ACP contiene 5 elementos:
 
-1. sdev: Este elemento contiene las desviaciones estándar de las componentes principales. La longitud de este vector es igual al número de componentes principales. En PCA, las desviaciones estándar se relacionan con la cantidad de varianza que cada componente principal captura del conjunto de datos. Al elevar al cuadrado estos valores, se obtienen los autovalores de la matriz de covarianza o correlación utilizada en el PCA.
+1.  sdev: Este elemento contiene las desviaciones estándar de las componentes principales. La longitud de este vector es igual al número de componentes principales. En PCA, las desviaciones estándar se relacionan con la cantidad de varianza que cada componente principal captura del conjunto de datos. Al elevar al cuadrado estos valores, se obtienen los autovalores de la matriz de covarianza o correlación utilizada en el PCA.
 
-2. rotation: También conocido como la matriz de carga, este elemento contiene los autovectores de la matriz de covarianza/correlación de los datos. Las columnas de esta matriz son los autovectores que corresponden a las componentes principales y que se utilizan para transformar los datos originales al espacio de las componentes principales.
+2.  rotation: También conocido como la matriz de carga, este elemento contiene los autovectores de la matriz de covarianza/correlación de los datos. Las columnas de esta matriz son los autovectores que corresponden a las componentes principales y que se utilizan para transformar los datos originales al espacio de las componentes principales.
 
-3. center: Al realizar PCA, es común centrar los datos restando la media de cada variable. Este elemento contiene las medias de las variables originales que se han restado durante el proceso de centrado. Si el argumento center = FALSE se utilizó en prcomp(), este componente no estará presente.
+3.  center: Al realizar PCA, es común centrar los datos restando la media de cada variable. Este elemento contiene las medias de las variables originales que se han restado durante el proceso de centrado. Si el argumento center = FALSE se utilizó en prcomp(), este componente no estará presente.
 
-4. scale:Si los datos fueron escalados (normalmente dividiendo por la desviación estándar de cada variable) antes de aplicar PCA, este elemento contendrá los factores de escala utilizados. El escalado se realiza para que todas las variables contribuyan por igual al análisis, independientemente de sus unidades de medida. Si el argumento scale. = FALSE se utilizó en prcomp(), este componente no estará presente.
+4.  scale:Si los datos fueron escalados (normalmente dividiendo por la desviación estándar de cada variable) antes de aplicar PCA, este elemento contendrá los factores de escala utilizados. El escalado se realiza para que todas las variables contribuyan por igual al análisis, independientemente de sus unidades de medida. Si el argumento scale. = FALSE se utilizó en prcomp(), este componente no estará presente.
 
-5. x: Contiene los datos originales proyectados en el espacio de las componentes principales, a veces denominados como puntuaciones de las componentes principales (scores). Cada columna es una componente principal y cada fila corresponde a una observación de los datos originales.
+5.  x: Contiene los datos originales proyectados en el espacio de las componentes principales, a veces denominados como puntuaciones de las componentes principales (scores). Cada columna es una componente principal y cada fila corresponde a una observación de los datos originales.
 
 ```{r}
 acp %>% str()
 ```
+
 ```{r}
 print('sdev')
 acp$sdev
@@ -305,8 +326,9 @@ acp$scale
 print('x')
 acp$x
 ```
-Para corroborar el analisis, la suma de los valores propios deberia ser igual a la suma de las varianzas.
-ACP devuelve los desvios de cada Componente por lo cual es necesario elevarlo al cuadrado.
+
+Para corroborar el analisis, la suma de los valores propios deberia ser igual a la suma de las varianzas. ACP devuelve los desvios de cada Componente por lo cual es necesario elevarlo al cuadrado.
+
 ```{r}
 acp$sdev**2 %>% sum()
 ```
@@ -314,6 +336,7 @@ acp$sdev**2 %>% sum()
 ```{r}
 acp$rotation
 ```
+
 ```{r}
 acp$rotation[,1] %>% 
   t() %>% 
@@ -325,12 +348,12 @@ acp$rotation[,1] %>%
   theme_bw()
   
 ```
-g)  Indicar qué porcentaje de la variabilidad total logra explicar esta componente. Explicar si se trata de una componente de tamaño o de forma. Es posible ordenar las promotoras en función de esta componente?. Si la respuesta es afirmativa, cual es la mayor y cual la menor; si es negativa, explicar por qué no es posible ordenarlos.
+
+g)   Indicar qué porcentaje de la variabilidad total logra explicar esta componente. Explicar si se trata de una componente de tamaño o de forma. Es posible ordenar las promotoras en función de esta componente?. Si la respuesta es afirmativa, cual es la mayor y cual la menor; si es negativa, explicar por qué no es posible ordenarlos.
 
 ```{r}
 fviz_eig(acp, addlabels = T, ylim=c(0,120))
 ```
-
 
 ```{r}
 acp %>% summary()
@@ -339,17 +362,20 @@ acp$rotation
 
 acp$x
 ```
-**La componente principal 1 (PC1) logra explicar el 97.06% de la variabilidad total de los datos. Al ser todos los loadings positivos se trata de una componente de tamañano. **
+
+**La componente principal 1 (PC1) logra explicar el 97.06% de la variabilidad total de los datos. Al ser todos los loadings positivos se trata de una componente de tamañano.**
 
 ```{r}
 fviz_pca_biplot(acp, ylim=c(-4,4))
 ```
 
 Para ordenar las promotoras segun la primer componente seria:
+
 ```{r}
 data.frame(id=seq(1:10), cp1 =acp$x[,1]) %>% 
   arrange(cp1)
 ```
+
 ```{r}
 data.frame(id=seq(1:10), cp1 =acp$x[,1]) %>% 
   arrange(cp1) %>% ggplot(aes(x= cp1, y=0, label=id))+
@@ -359,18 +385,17 @@ data.frame(id=seq(1:10), cp1 =acp$x[,1]) %>%
              color = 2)+
   theme_bw()
 ```
+
 **Es posible agrupar las promotoras según lo manifestado por la CP1. La promotoras 10 y 8 se encuentras separadas del resto. Esto quiere decir que en terminos de superficie y duracion estas promotoras se destacan con clientes de propiedades grandes e hipotecas largas. De manera contraria la promotora 1 se encuentra alejada del comportamiento promedio en terminos negativos, con propiedades chicas y duraciones cortas. Por ultimo, las promotoras 3,4,5,7 son promotoras promedio.**
 
-```{r}
-library(ggrepel) #para etiquetas
-```
-
 Valores medios de las Variables
+
 ```{r}
 acp$center
 ```
 
-Para analizar el comportamiento bivariado se realizó un scaterplot entre las variables menos correlacionadas (superficie y duracion). Se puede observar que solo las promotoras 10 y 8 estan por encima de la media en ambas variables. Esto ratifica lo observado en la componente principal1. 
+Para analizar el comportamiento bivariado se realizó un scaterplot entre las variables menos correlacionadas (superficie y duracion). Se puede observar que solo las promotoras 10 y 8 estan por encima de la media en ambas variables. Esto ratifica lo observado en la componente principal1.
+
 ```{r}
 chalets %>% ggplot(aes(x=superficie, y=duracion))+
   geom_point()+
@@ -381,4 +406,205 @@ chalets %>% ggplot(aes(x=superficie, y=duracion))+
   geom_hline(yintercept = 19.05, linetype = 2,
              color = 2)
 ```
+
+## Ejercicio 3
+Dado el siguiente conjunto de datos:
+$X = \begin{pmatrix} 3 & 6 \\ 5 & 6 \\ 10 & 12 \\ \end{pmatrix}$
+
+```{r}
+X = matrix(c(3, 6, 5, 6, 10, 12), nrow = 3, byrow = TRUE)
+X
+```
+a)  Calcule la matriz de covarianza, los autovalores y autovectores.
+```{r}
+cov(X)
+```
+
+Tamaño Total del Problema
+```{r}
+diag(cov(X)) %>% sum()
+```
+
+
+```{r}
+eigen(cov(X))
+```
+```{r}
+autovalores = eigen(cov(X))$values
+autovalores
+```
+
+Tamaño Total del Problema
+```{r}
+autovalores %>% sum()
+```
+
+```{r}
+autovectores = eigen(cov(X))$vectors
+autovectores
+```
+
+```{r}
+data.frame(componentes = c('c1','c2'),
+  Variabilidad = autovalores/sum(autovalores)) %>% 
+  mutate(Variabilidad_acc = cumsum(Variabilidad)*100)
+```
+
+```{r}
+data.frame(componentes = c('c1','c2'),
+  Variabilidad = autovalores/sum(autovalores)) %>% 
+  mutate(Variabilidad_acc = cumsum(Variabilidad)) %>% 
+  ggplot(aes(x= componentes, y = Variabilidad))+ 
+  geom_text_repel(aes(label=round(Variabilidad,2)*100))+
+  geom_bar(stat='identity', aes(fill=componentes), color='black')+
+  scale_fill_brewer(palette = 'PuOr')+
+  theme_bw()
+```
+
+c)  Grafique los datos en R2 2 en la base original y en la base de los dos primeros ejes.
+```{r}
+data.frame(X1 = X[,1], X2 = X[,2], id=c(1,2,3)) %>% 
+  ggplot(aes(x=X1, y = X2))+
+  geom_point()+
+  geom_text_repel(aes(label=id))+
+  theme_bw()+
+  ylim(c(0,12))+
+  xlim(c(0,13))
+```
+Los Scores se pueden realizar de la siguiente manera, multiplicando las matrices.
+```{r}
+scores = X %*% autovectores
+scores
+```
+Al aplicar la transformación se pueden diferenciar los puntos 1 y 2 en el sentido de las y, ya que en el original no podria hacerse ya que ambos tenian en valor 6 en Y. 
+```{r}
+data.frame(cp1 = scores[,1], cp2 = scores[,2], id=c(1,2,3))%>% 
+  ggplot(aes(x=cp1, y = cp2))+
+  geom_text_repel(aes(label=id))+
+  geom_point()+
+  theme_bw()
+```
+
+d)  Repita los cálculos con los datos estandarizados. Interprete los resultados
+obtenidos.
+```{r}
+Xsc = scale(X)
+Xsc
+```
+```{r}
+cov(Xsc)
+```
+
+Tamaño Total del Problema: da diferente.
+```{r}
+diag(cov(Xsc)) %>% sum()
+```
+
+
+```{r}
+eigen(cov(Xsc))
+```
+```{r}
+autovalores_sc = eigen(cov(Xsc))$values
+autovalores_sc
+```
+
+Tamaño Total del Problema
+```{r}
+autovalores_sc %>% sum()
+```
+
+```{r}
+autovectores_sc = eigen(cov(Xsc))$vectors
+autovectores_sc
+```
+
+```{r}
+data.frame(componentes = c('c1','c2'),
+  Variabilidad = autovalores_sc/sum(autovalores_sc)) %>% 
+  mutate(Variabilidad_acc = cumsum(Variabilidad)*100)
+```
+
+Los Scores se pueden realizar de la siguiente manera, multiplicando las matrices.
+```{r}
+scores_sc = Xsc %*% autovectores_sc
+scores_sc
+```
+
+```{r}
+data.frame(cp1 = scores_sc[,1], cp2 = scores_sc[,2], id=c(1,2,3))%>% 
+  ggplot(aes(x=cp1, y = cp2))+
+  geom_text_repel(aes(label=id))+
+  geom_point()+
+  theme_bw()
+```
+
+e)  Verifique que los dos primeros autovectores son ortogonales entre sí. Represente gráficamente estos dos vectores en un gráfico bidimensional y trace rectas desde el origen hasta la ubicación de cada uno de los vectores en el gráfico.
+
+
+```{r}
+# Tenemos dos autovectores v1 y v2
+v1 <- autovectores[,1]
+v2 <- autovectores[,2]
+```
+
+```{r}
+vectores_df <- data.frame(
+  x = c(0, v1[1], 0, v2[1]),
+  y = c(0, v1[2], 0, v2[2]),
+  vector = factor(rep(c("Autovector 1", "Autovector 2"), each = 2))
+)
+vectores_df
+```
+
+
+```{r}
+# Crear el gráfico con ggplot2
+ggplot() +
+  geom_segment(data = vectores_df, aes(x = 0, y = 0, xend = x, yend = y, colour = vector), 
+               arrow = arrow(type = "closed", length = unit(0.2, "inches"))) +
+  scale_color_manual(values = c("Autovector 1" = "blue", "Autovector 2" = "red")) +
+  theme_minimal() +
+  labs(title = "Autovectores en el Espacio Bidimensional Sin Escalar", x = "X", y = "Y") +
+  coord_fixed()
+```
+
+```{r}
+v1 <- autovectores_sc[,1]
+v2 <- autovectores_sc[,2]
+vectores_df <- data.frame(
+  x = c(0, v1[1], 0, v2[1]),
+  y = c(0, v1[2], 0, v2[2]),
+  vector = factor(rep(c("Autovector 1", "Autovector 2"), each = 2))
+)
+vectores_df
+```
+
+```{r}
+# Crear el gráfico con ggplot2
+ggplot() +
+  geom_segment(data = vectores_df, aes(x = 0, y = 0, xend = x, yend = y, colour = vector), 
+               arrow = arrow(type = "closed", length = unit(0.2, "inches"))) +
+  scale_color_manual(values = c("Autovector 1" = "blue", "Autovector 2" = "red")) +
+  theme_minimal() +
+  labs(title = "Autovectores en el Espacio Bidimensional Datos Escalados", x = "X", y = "Y") +
+  coord_fixed()
+```
+
+La razón por la que los autovectores y autovalores resultan diferentes cuando se calculan con datos escalados y sin escalar radica en cómo la escala de los datos afecta a la matriz de covarianza o correlación que se utiliza para obtenerlos.
+
+*Datos sin escalar*
+Cuando realizas un análisis de componentes principales (PCA) sin escalar los datos, estás trabajando con la varianza y covarianza "naturales" de tus datos. Si las variables tienen diferentes unidades o rangos de varianza, las variables con mayor varianza tendrán un peso más significativo en el resultado del PCA. Esto significa que las componentes principales resultantes pueden estar sesgadas hacia estas variables.
+
+*Datos escalados*
+Al escalar los datos, normalmente se centran (restando la media) y se estandarizan (dividiendo por la desviación estándar). Este proceso lleva a todas las variables a una misma escala y elimina las unidades, lo que permite que cada variable contribuya equitativamente al análisis del PCA, independientemente de su varianza original o unidades de medida. En otras palabras, el escalado asegura que la varianza de una variable no influya más que otra simplemente debido a la magnitud de sus valores.
+
+*Efecto en Autovalores y Autovectores*
+Los autovalores reflejan la varianza capturada por cada componente principal. Si las variables no están escaladas, las componentes principales reflejarán más la varianza de las variables con rangos más grandes. Cuando las variables están escaladas, los autovalores reflejarán una contribución más equitativa.
+
+Los autovectores, que indican la dirección de las componentes principales, también cambian. En datos no escalados, las direcciones pueden estar dominadas por variables con mayor varianza. En datos escalados, cada variable tiene igual oportunidad de influir en la dirección de las componentes principales.
+
+*Conclusión*
+La elección de escalar o no los datos antes de realizar el PCA depende del contexto y de los objetivos del análisis. Si las variables están en diferentes unidades o tienen diferentes rangos de varianza y deseas que todas tengan la misma importancia en el análisis, debes escalar. Si algunas variables son intrínsecamente más variables y eso es importante para el análisis, podrías optar por no escalar.
+
 
