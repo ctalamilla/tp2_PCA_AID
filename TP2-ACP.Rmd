@@ -99,10 +99,10 @@ data.frame(loading = autovectores[,1], orden = seq(1,3,1))
 ```{r}
 data.frame(loading = autovectores[,1], orden = seq(1,3,1)) %>%
   ggplot(aes(x=orden, y = loading, fill=as.factor(orden)))+
-  geom_bar(stat = "identity") +
+  geom_bar(stat = "identity", color='black') +
   theme_minimal() +
   labs(title = "Loadings de la CP1", x = "Orden", y = "Loading")+
-  theme_bw()+
+  theme_bw()+ scale_fill_brewer(palette = "PuOr")+
   theme(legend.position = "none")
 
 ```
@@ -606,5 +606,322 @@ Los autovectores, que indican la dirección de las componentes principales, tamb
 
 *Conclusión*
 La elección de escalar o no los datos antes de realizar el PCA depende del contexto y de los objetivos del análisis. Si las variables están en diferentes unidades o tienen diferentes rangos de varianza y deseas que todas tengan la misma importancia en el análisis, debes escalar. Si algunas variables son intrínsecamente más variables y eso es importante para el análisis, podrías optar por no escalar.
+
+## Ejercicio 4
+Sea S la matriz de varianzas y covarianzas poblacionales:
+$X = \begin{pmatrix} 3 & 1 & 1 \\ 1 & 4 & 0 \\ 1 & 0 & 2 \\ \end{pmatrix}$
+```{r}
+S = matrix(c(3, 1, 1, 1, 4, 0, 1, 0, 2), nrow = 3, byrow = TRUE)
+S
+```
+
+* X1 puntuación media obtenida en las asignaturas de econometría
+* X2 puntuación media obtenida en las asignaturas de derecho
+* X3 puntuación media obtenida en asignaturas libres
+
+Crear una matriz de correlacion a partir de una matriz de covarianzas
+```{r}
+# Calcular las desviaciones estándar de las variables originales
+std_devs <- sqrt(diag(S))
+# Crear una matriz de desviaciones estándar para la división
+std_dev_matrix <- outer(std_devs, std_devs, "*")
+# Calcular la matriz de correlación
+cor_matrix <- S / std_dev_matrix
+# Mostrar la matriz de correlación
+print(cor_matrix)
+```
+Sí, es posible convertir una matriz de covarianza en una matriz de correlación utilizando operaciones matemáticas estándar y la matriz identidad, junto con la matriz de desviaciones estándar de las variables. La idea es normalizar la matriz de covarianza de tal manera que las varianzas (los elementos de la diagonal) se conviertan en 1, lo cual es característico de una matriz de correlación.
+
+En el contexto de matrices, la diagonal de la matriz de covarianza contiene las varianzas de las variables, y para convertirla en una matriz de correlación, debemos dividir cada elemento de la matriz de covarianza por el producto de las desviaciones estándar asociadas a sus respectivas filas y columnas.
+
+Si D es una matriz diagonal donde cada elemento diagonal D[i, i] es la desviación estándar de la variable i, entonces la matriz de correlación R se puede obtener de la siguiente manera:
+
+$R=D^{−1}⋅C⋅D^{−1}$
+donde C es la matriz de covarianza y $D^{-1}$ es la inversa de la matriz D (que es simplemente 1 dividido por cada elemento en la diagonal de D, ya que D es una matriz diagonal).
+
+```{r}
+# La matriz diagonal D con las desviaciones estándar
+D <- diag(sqrt(diag(S)))
+
+# Invertir D para obtener D^-1
+D_inv <- solve(D)
+
+# Calcular la matriz de correlación
+cor_matrix <- D_inv %*% S %*% D_inv
+
+# Mostrar la matriz de correlación
+print(cor_matrix)
+
+```
+
+a) Calcule los autovalores de la matriz S.
+```{r}
+autovalores = eigen(S)$values
+autovectores = eigen(S)$vectors
+
+autovalores
+autovectores
+```
+
+```{r}
+autovalores %>% sum()
+diag(S) %>% sum()
+```
+
+b) Interprete la segunda componente principal sabiendo que el autovector correspondiente:
+$e1 =(0,5744;−0,5744;0,5744).$
+
+```{r}
+autovectores[,2]
+```
+Varianza explicada:
+```{r}
+autovalores/sum(autovalores)*100
+
+autovalores[2]/sum(autovalores)*100
+```
+
+Para el analisis es necesario recordar de que se tratan las variables. 
+
+* X1 puntuación media obtenida en las asignaturas de econometría
+* X2 puntuación media obtenida en las asignaturas de derecho
+* X3 puntuación media obtenida en asignaturas libres
+
+
+*X1* (Econometría): El peso positivo (0.5744) de la puntuación media obtenida en las asignaturas de econometría sugiere que hay una asociación directa entre las puntuaciones altas en econometría y los valores altos en la segunda componente principal. Es decir, a medida que las puntuaciones en econometría aumentan, también lo hace el valor de la segunda componente principal.
+
+*X2* (Derecho): El peso negativo (-0.5744) indica que las puntuaciones altas en derecho están asociadas inversamente con la segunda componente principal. Un valor más alto en derecho contribuiría a un valor más bajo en esta componente principal. Esto podría sugerir que los estudiantes que obtienen altas puntuaciones en derecho tienden a obtener puntuaciones más bajas en econometría y asignaturas libres, o viceversa.
+
+*X3* (Asignaturas Libres): Al igual que con X1, el peso positivo (0.5744) significa que las puntuaciones más altas en asignaturas libres se asocian con valores más altos en la segunda componente principal.
+
+La igualdad de los valores absolutos de los pesos indica que la contribución de cada asignatura a la variabilidad capturada por esta componente principal es igual en magnitud. Además, el hecho de que los pesos de X1 y X3 sean positivos y el de X2 sea negativo sugiere que esta componente podría estar capturando un contraste en el desempeño académico: estudiantes que se desempeñan de manera similar en econometría y asignaturas libres pero de manera opuesta en derecho.
+
+En resumen, la segunda componente principal podría estar identificando un patrón de desempeño estudiantil donde existe una dicotomía entre el rendimiento en econometría y asignaturas libres frente al rendimiento en derecho. Estudiantes con altos valores en esta componente principal tenderían a tener puntuaciones similares en econometría y asignaturas libres, pero bajas en derecho, y aquellos con bajos valores en la componente principal mostrarían el patrón opuesto.
+
+*Dirección y Ponderación*: Las tres variables originales contribuyen de manera igual en magnitud a esta componente principal, ya que los valores absolutos de las entradas del autovector son iguales.
+
+*Signo*: El signo de las entradas del autovector indica la dirección de la relación. En este caso, la segunda entrada es negativa, mientras que la primera y la tercera son positivas. Esto significa que la segunda variable está inversamente relacionada con la primera y la tercera en esta componente principal.
+
+*Interpretación de la Componente*: La segunda componente principal parece capturar una variabilidad en los datos donde la primera y la tercera variables varían juntas en la dirección opuesta a la segunda variable. Cabe destacar que la primer variable esta correlacionada positivamente con las variables 2 y 3. Mientras que la segunda variable tiene 0 correlacion con la tercera.
+
+*Varianza Explicada*: La componente explica el 33% de la variacion de los datos y la igualdad de los valores en el autovector sugiere que esta componente está equidistantemente orientada con respecto a las tres variables.
+
+*Relevancia de la Componente*: Asumiendo que esta es la segunda componente principal en una PCA, podría representar la segunda mayor fuente de variabilidad en el conjunto de datos después de la primera componente principal.
+
+En resumen, la segunda componente principal parece representar una dimensión de los datos donde hay un equilibrio de variabilidad entre las tres variables observadas, con la segunda variable moviéndose en la dirección opuesta a las otras dos. Para una interpretación más detallada y significativa, necesitaríamos entender qué representan estas variables en el contexto de los datos analizados.
+
+c) Como se debería interpretar si un estudiante tuviera una puntuación en la componente principal muy inferior a la de sus compañeros?.
+
+*Econometría (X1)*: Dado que la carga asociada con la econometría es positiva, una puntuación baja en la segunda componente principal sugiere que el estudiante probablemente tiene una puntuación baja en econometría, o al menos más baja en comparación con la puntuación promedio de sus compañeros.
+
+*Derecho (X2):* La carga negativa asociada con las asignaturas de derecho implica que una puntuación baja en la segunda componente principal indica una puntuación alta en derecho. En otras palabras, el estudiante puede estar destacando en derecho en comparación con sus compañeros.
+
+*Asignaturas Libres (X3):* Al igual que con la econometría, una carga positiva para las asignaturas libres significa que una puntuación baja en esta componente principal sugiere que el estudiante también tiene un rendimiento bajo en asignaturas libres.
+
+Dado el patrón de cargas en el autovector de la segunda componente principal, una puntuación baja para un estudiante indicaría *un rendimiento académico que contrasta con las asignaturas de economía y libres en comparación con el derecho.* Es decir, este estudiante podría tener un *perfil académico fuerte en derecho pero débil en econometría y asignaturas libre*s, lo que refleja una inclinación hacia el área legal sobre las otras áreas.
+
+Esto destaca la importancia del contexto en la interpretación de las componentes principales. La segunda componente principal parece capturar una dimensión de variabilidad en el rendimiento académico que distingue entre el enfoque en el derecho y otras áreas de estudio. 
+*Por lo tanto, una puntuación baja en esta componente no es necesariamente indicativa de un rendimiento académico general pobre, sino más bien de una distribución específica de fortalezas y debilidades académicas.*
+
+d) ¿Cuántas componentes principales serán necesarias para explicar al menos el 80 % de la variabilidad total del conjunto?
+```{r}
+cumsum(autovalores/sum(autovalores)*100)
+```
+
+```{r}
+data.frame(componentes = c(1,2,3),
+  Variabilidad = autovalores/sum(autovalores)) %>% 
+  mutate(loading_acc = cumsum(Variabilidad)) 
+```
+*Para obtener al menos el 80% harian falta las componentes 1 y 2.*
+
+```{r}
+data.frame(componentes = c(1,2,3),
+  Variabilidad = autovalores/sum(autovalores)) %>% 
+  mutate(loading_acc = cumsum(Variabilidad)) %>% 
+  ggplot(aes(x= componentes, y = Variabilidad))+
+  geom_point()+geom_line()+theme_bw()
+```
+
+# Ejercicio 6
+La tabla gorriones.xls contiene datos de 49 aves, 21 de los cuales sobrevi- vieron a una tormenta. Se pide:
+
+```{r}
+gorriones <- read_excel("gorriones.xlsx")
+```
+
+```{r}
+gorriones = gorriones %>% mutate(sobrevida = case_when(sobrevida == 1 ~ "Si",
+                                           sobrevida == -1 ~"No"),
+                                 sobrevida = as.factor(sobrevida))
+gorriones
+```
+
+a) Estandarice las variables y calcule la matriz de covarianzas para las variables estandarizadas.
+
+```{r}
+gorriones_sc= gorriones %>% select(-c(pajaro, sobrevida)) %>% 
+  mutate_if(is.numeric, ~scale(.))
+gorriones_sc
+```
+Boxplots Estandarizados
+```{r}
+gorriones[,2:6] %>% 
+  mutate_if(is.numeric, scale) %>% 
+  pivot_longer(cols=1:5, names_to='Variable', values_to='Valor') %>% 
+  ggplot(aes(x=Variable, y = Valor, fill=Variable))+
+  geom_boxplot()+
+  scale_fill_brewer(palette = "PuOr")+
+  geom_jitter(alpha=0.5, shape=21, color='black')+
+  #geom_point(stat = 'summary', fun.x = 'mean')+
+  scale_color_brewer(palette = "PuOr")+
+  theme_bw()
+```
+
+Boxplots Sin Estandarizar
+```{r}
+gorriones %>% 
+  pivot_longer(cols=2:6, names_to='Variable', values_to='Valor') %>% 
+  ggplot(aes(x=Variable, y = Valor, fill=Variable))+
+  geom_boxplot()+
+  scale_fill_brewer(palette = "PuOr")+
+  geom_jitter(alpha=0.5, shape=21, color='black')+
+  geom_point(stat = 'summary', fun.data = mean_se, shape=12)+
+  scale_color_brewer(palette = "PuOr")+
+  theme_bw()+
+  facet_wrap(~Variable, ncol=5, scales = "free")
+```
+```{r}
+cov(gorriones_sc) %>% round(3)
+```
+b) Verifique que ésta es la matriz de correlación de las variables originales.
+**La matriz de correlacion de los datos sin estandarizas es igual a la matriz de varianzas de los datos estandarizados**.
+```{r}
+cor(gorriones[,2:6]) %>% round(3)
+
+cov(gorriones_sc) %>% round(3) == cor(gorriones[,2:6]) %>% round(3)
+
+all.equal(cov(gorriones_sc) %>% round(3) , cor(gorriones[,2:6]) %>% round(3))
+```
+c) Le parece adecuado en este caso un análisis de componentes principales. ¿Qué indica el autovalor para una componente principal?
+**Si, todas las variables tienen correlación positiva**
+
+En el contexto del Análisis de Componentes Principales (PCA), un autovalor asociado a una componente principal **indica la cantidad de varianza que dicha componente principal captura de los datos originales.** En términos más técnicos, un autovalor refleja la proporción de la varianza total que es explicada por su componente principal correspondiente.
+
+**Magnitud de Varianza:** Un autovalor grande indica que esa componente principal captura una gran parte de la varianza en los datos. Por el contrario, un autovalor pequeño sugiere que la componente principal correspondiente capta solo una pequeña cantidad de la varianza.
+
+**Orden de Importancia:** Las componentes principales se ordenan típicamente por la magnitud de sus autovalores, de mayor a menor. La primera componente principal es la dirección en el espacio de características en la que los datos varían más, seguida de la segunda componente principal, y así sucesivamente.
+
+**Elección de Componentes:** En muchas aplicaciones de PCA, solo las componentes principales con los autovalores más altos se retienen para reducir la dimensionalidad de los datos. Las componentes con autovalores bajos a menudo se descartan porque capturan menos información (varianza).
+
+**Total de Varianza Explicada:** La suma de todos los autovalores de un PCA es igual a la suma de las varianzas de todas las variables originales. Esto se debe a que PCA es una transformación ortogonal que conserva la varianza total de los datos.
+
+**Contribución Porcentual:** La contribución porcentual de cada componente principal a la varianza total se calcula dividiendo el autovalor de la componente por la suma total de los autovalores.
+
+**Decisión sobre la Reducción de Dimensiones:** A menudo se utiliza un "criterio de corte" como el gráfico de sedimentación (scree plot) o el criterio de Kaiser (mantener solo componentes con autovalores mayores que 1) para decidir cuántas componentes principales retener. También se puede utilizar el porcentaje acumulado de varianza explicada como criterio.
+
+```{r, warning=F, message=F}
+gorriones[,2:6] %>% ggpairs()
+```
+
+d) ¿Cuántas componentes son necesarias para explicar el 80 % de la varianza total? Realice el grafico de sedimentación, fundamente su respuesta con este gráfico.
+
+```{r}
+acp_gorriones = prcomp(gorriones_sc)
+acp_gorriones
+```
+```{r}
+summary(acp_gorriones)
+```
+**Hacen falta las dos primeras componentes para representar al menos el 80% de la variabilidad**
+```{r}
+fviz_eig(acp_gorriones, addlabels = T, ylim=c(0,100))
+```
+
+e) ¿Cuál es la expresión de la primer componente principal?
+
+Totas las CP.
+```{r}
+cp_gorriones = acp_gorriones$rotation
+cp_gorriones
+```
+La primer componente:
+```{r}
+cp_gorriones[,1]
+```
+
+f) ¿Cómo queda expresada la primer componente principal? (en función del autovector correspondiente y de las variables).
+
+$CP1 = largototal * 0.4549833 + extension * 0.4602276 +  cabeza * 0.4478919 + humero * 0.4727851 + esternon * 0.3962927$
+
+g) Encuentre las coordenadas del pájaro 11 en las nuevas componentes.
+
+```{r}
+gorriones %>% filter(pajaro==11)
+```
+```{r}
+p11 = gorriones %>% 
+  filter(pajaro==11) %>% 
+  select(-c(pajaro, sobrevida))%>% 
+  t() %>%
+  as.vector()
+p11
+```
+
+CP1:
+```{r}
+cp_gorriones[,1]
+```
+
+
+```{r}
+cp_gorriones[,1] %*% p11
+```
+
+```{r}
+p11[1] * 0.4549833 + p11[2] * 0.4602276 +  p11[3] * 0.4478919 + p11[4] * 0.4727851 + p11[5] * 0.3962927
+```
+
+h) Represente gráficamente en el plano. (Eje 1 vs 2, 1 vs 3, 2 vs 3). Interprete los tres primeros ejes.
+```{r}
+fviz_pca_biplot(acp_gorriones, geom = c("point", "text"), 
+                col.ind = "cos2", # Color por calidad de la representación
+                col.var = "contrib", # Color por contribución a la PCA
+                gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+                repel = TRUE # Evitar solapamiento de texto
+                )
+```
+```{r}
+fviz_pca_biplot(acp_gorriones, axes = c(1, 3), geom = c("point", "text"), 
+                col.ind = "cos2", # Color por calidad de la representación
+                col.var = "contrib", # Color por contribución a la PCA
+                gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+                repel = TRUE # Evitar solapamiento de texto
+                )
+```
+```{r}
+fviz_pca_biplot(acp_gorriones, axes = c(2, 3), geom = c("point", "text"), 
+                col.ind = "cos2", # Color por calidad de la representación
+                col.var = "contrib", # Color por contribución a la PCA
+                gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+                repel = TRUE # Evitar solapamiento de texto
+                )
+```
+
+i) Realice un gráfico donde se observen los gorriones en los nuevos ejes 1 y 2, y resalte con distinto color el grupo de los que sobrevivieron.
+```{r}
+cbind(acp_gorriones$x, gorriones$sobrevida) %>% 
+  data.frame() %>% 
+  select(PC1, PC2, V6) %>% 
+  mutate(sobrevida = case_when(V6 == 2 ~ "Si", V6 == 1 ~"No") ) %>% 
+  ggplot(aes(x=PC1, y=PC2, color=sobrevida))+
+  geom_point()+
+  geom_hline(yintercept = 0, linetype = "dashed", color = "black") +  # Línea horizontal en y = 0
+  geom_vline(xintercept = 0, linetype = "dashed", color = "black") +  # Línea vertical en x = 0
+  theme_bw()
+```
+
+j) Utilice el Análisis en Componentes Principales como método para encontrar outliers.
+
 
 
