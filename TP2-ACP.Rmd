@@ -27,6 +27,9 @@ library(corrplot)
 library(factoextra)
 library(ggcorrplot)
 library(ggrepel) #para etiquetas
+library(ggthemes)
+library(ggforce)
+library(magrittr)
 ```
 
 ## Ejercicio 1
@@ -620,6 +623,7 @@ S
 * X3 puntuación media obtenida en asignaturas libres
 
 Crear una matriz de correlacion a partir de una matriz de covarianzas
+
 ```{r}
 # Calcular las desviaciones estándar de las variables originales
 std_devs <- sqrt(diag(S))
@@ -923,5 +927,234 @@ cbind(acp_gorriones$x, gorriones$sobrevida) %>%
 
 j) Utilice el Análisis en Componentes Principales como método para encontrar outliers.
 
+## Ejercicio 7
+Con el objetivo de Obtener índices útiles para la gestión hospitalaria basados en técnicas estadísticas multivariantes descriptivas se se recogió información del Hospital de Algeciras correspondiente a los ingresos hospitalarios del periodo 2007- 2008.
+Se estudiaron las variables habitualmente monitorizadas por el Servicio Andaluz de Salud, del Sistema Nacional de Salud Español:
+
+NI: número de ingresos
+MO: mortalidad
+RE: número de reingresos
+NE: número de consultas externas
+NE: número de consultas externas ES: número de estancias
+ES: número de estancias
+
+Las variables se midieron en un total de 22486 ingresos.
+
+En la siguiente tabla se aprecia la Distribución de los valores obtenidos en las variables listadas por los servicios del hospital de Algeciras( Andalucía, Espana):
+
+```{r}
+servicios <- tribble(
+  ~Servicio,              ~NI,   ~MO,   ~RE,   ~NE,   ~ICM,  ~ES,  ~IF,
+  "Cirugía",              2158,  3.8,   3.4,  8567,  1.17, 21879, 1.05,
+  "Tocoginecología",      5146,  0.3,   3.1,  3782,  0.52, 22068, 0.87,
+  "Hematología",           489,  4.1,   6.8, 11005,  1.68,  4980, 0.95,
+  "Cardiología",           677,  2.2,   3.9,  2161,  1.3,   8587, 0.83,
+  "Digestivo",             698,  5.9,   3.2,  9473,  1.06,  7189, 1.01,
+  "Medicina Interna",     4171, 12.5,   5.5, 21563,  1.04, 47909, 1.02,
+  "Neumología",            562,  5.1,   4.4,  2659,  1.47,  5098, 0.68,
+  "Otorrinolaringología",  650,  2.1,   2.3, 22024,  0.87,  3161, 0.86,
+  "Oftalmología",          990,    0,   0.2, 21752,  0.82,  1096, 0.5,
+  "Pediatría",            3752,  0.3,   2.1,  8273,  0.51, 12152, 1,
+  "Psiquiatría",           622,    0,  13.3, 27000,  1.37,  6776, 0.6,
+  "Traumatología",        1410,  0.7,   1.5, 13290,  1.16, 14948, 1.17,
+  "Urología",             1161,    2,   3.9,  4767,  0.79,  8959, 1.01
+)
+```
+
+```{r}
+servicios
+```
+La idea central del ACP es conseguir la simplificación de un conjunto de datos, generalmente cuantitativos, procedentes de un conjunto de variables interrelacionadas.
+
+Este objetivo se alcanza obteniendo, a partir de combinaciones lineales de las variables originalmente medidas, un nuevo conjunto de igual número de variables, no correlacionadas, llamadas componentes principales (CP) en las cuales permanece la variabilidad presente en los datos originales, y que al or- denarlas decrecientemente por su varianza, nos permiten explicar el fenómeno de estudio con las primeras CP.
+
+### Analisis Exploratorio
+
+```{r}
+servicios[,2:8] %>% summary()
+```
+```{r}
+servicios[,2:8] %>% 
+  pivot_longer(cols=1:7, names_to='Variable', values_to='Valor') %>% 
+  ggplot(aes(x=Variable, y = Valor, fill=Variable))+
+  geom_boxplot()+
+  scale_fill_brewer(palette = "PuOr")+
+  geom_jitter(alpha=0.5, shape=21, color='black')+
+  geom_point(stat = 'summary', fun.data = mean_se, shape=12)+
+  scale_color_brewer(palette = "PuOr")+
+  theme_bw()+
+  facet_wrap(~Variable, ncol=4, scales = "free")
+```
+
+```{r}
+servicios[,2:8] %>% 
+  mutate_if(is.numeric, scale) %>% 
+  pivot_longer(cols=1:7, names_to='Variable', values_to='Valor') %>% 
+  ggplot(aes(x=Variable, y = Valor, fill=Variable))+
+  geom_boxplot()+
+  scale_fill_brewer(palette = "PuOr")+
+  geom_jitter(alpha=0.5, shape=21, color='black')+
+  #geom_point(stat = 'summary', fun.x = 'mean')+
+  scale_color_brewer(palette = "PuOr")+
+  theme_bw()
+```
+
+```{r, warning=F, message=F}
+servicios[, 2:8] %>% ggpairs() + theme_pander() + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+```
+
+```{r}
+cor(servicios[,2:8])
+```
+```{r}
+cor(servicios[,2:8]) %>% 
+  corrplot(method = "square", diag = T, addCoef.col=T)
+```
+```{r}
+det(cor(servicios[,2:8]) )
+```
+
+```{r}
+cov(servicios[,2:8])
+```
+Tamaño del Problema
+```{r}
+diag(cov(servicios[,2:8]) ) %>% sum()
+```
+
+ACP con princomp
+ORDEN:
+
+princomp(formula, data = NULL, subset, na.action, ...)
+princomp(x, cor = FALSE, scores = TRUE, covmat = NULL, subset = rep(TRUE, nrow(as.matrix(x))), ...)
+ARGUMENTOS:
+
+formula: fórmula sin variable respuesta, sólo con variables numéricas. Por ej.: ~ varX1 + varX2 + varX3.
+data: un marco de datos opcional que contenga las variables de la fórmula.
+subset: un vector opcional para seleccionar las filas (observaciones) de la matriz de datos.
+x: matriz o marco de datos que proporciona los datos que proporciona los datos para el ACP.
+cor: Valor lógico (T/F) indicando si se usa la matriz de correlación (T) o la matriz de covarianzas (F). Dado que debemos considerar las variables estandarizadas, o equivalentemente la matriz de correlación, cor = TRUE.
+scores: Valor lógico (T/F) indicando si las puntuaciones de cada c.p. deben ser calculadas.
+RESULTADOS: Crea un objeto princomp que recoge la siguiente información:
+
+sdev: desviaciones estándar de las comp.principales.
+loadings: matriz de cargas (es decir, matriz de autovectores).
+center: las medias.
+scaling: la escala aplicada a cada variable.
+n.obs: número de observaciones.
+scores: Si se ha solicitado, las puntuaciones de los datos en las c.p.
 
 
+```{r}
+pca <- princomp(servicios[,2:8], cor = TRUE)
+pca
+```
+```{r}
+pca$loadings
+```
+```{r}
+pca %>% summary()
+```
+```{r}
+resumen_name <- paste0("CP",1:7)
+resumen_eign <- pca$sdev**2
+resumen_CP <- tibble(CP = resumen_name, Eigen = resumen_eign) %>% 
+  mutate(Percentage = 100*Eigen/sum(Eigen),
+         `Cumulative Percentage` = cumsum(Percentage))
+
+resumen_CP %>%
+  mutate_at(2:4, round, 2) 
+```
+
+Corroboramos los autovectores y autovalores de la matriz de correlacion.
+```{r}
+eigen(servicios[,2:8] %>% cor())
+```
+Criterio por autovalores
+```{r}
+resumen_CP %>% 
+  ggplot(aes(x = CP, y = Eigen)) + 
+  geom_bar(stat="identity",width=0.01) + 
+  geom_point() + theme_pander() +
+  geom_hline(yintercept=1, linetype="dashed", color = "red")
+```
+Criterio por % de la Variabilidad
+```{r}
+fviz_eig(pca, addlabels = T)
+```
+
+Cargas de Cada Componente
+```{r}
+eigen(cor(servicios[,2:8]))$vectors %>% 
+  as.tibble() %>% 
+  select(1:7) %>% 
+  round(3) 
+```
+
+Correlacion entre variables y cada componente principal
+```{r}
+correlations <- loadings(pca)%*%diag(pca$sdev) 
+
+corr_tibble <- correlations %>% 
+  set_colnames(paste0("CP",1:7)) %>% 
+  as.tibble() %>% mutate(nombre = rownames(correlations))
+corr_tibble
+```
+
+Este gráfico muestra cuáles de las variables originales están más fuertemente correlacionadas con las dos primeras CP. Podemos considerar más correladas aquellas que se encuentren fuera del cuadrado [-0.5, 0.5] x [-0.5, 0.5] (o también estudiar el valor absoluto). De nuevo, el gráfico puede verse rotado por la cuestión antes explicada del signo de los autovectores, pero la interpretación sigue siendo la misma.
+ 
+```{r}
+corr_tibble %>% 
+  select(c(1:2,8)) %>% 
+  ggplot(aes(CP1,CP2,label=nombre)) + 
+    xlim(-1,1) + ylim(-1,1) +
+    geom_label() + 
+    geom_hline(yintercept = -0.5, linetype="dashed", color = "red") +
+    geom_hline(yintercept = 0.5, linetype="dashed", color = "red") +
+    geom_vline(xintercept = -0.5, linetype="dashed", color = "red") +
+    geom_vline(xintercept = 0.5, linetype="dashed", color = "red") + 
+    theme_pander()
+```
+
+Un gráfico al que se recurre para el estudio de la correlación entre variables y CP es el Círculo de Correlación.
+```{r}
+fviz_pca_var(pca, col.var = "coord",
+   gradient.cols = c("orange", "red", "blue"),
+   ggtheme = theme_pander())
+```
+Es posible utilizar la función corrplot para resaltar las variables que más contribuyen a cada CP - dimensión. Aqui las columnas suman el 100%.
+```{r}
+var <- get_pca_var(pca)
+var$contrib %>% round(3)
+```
+Esto se corresponde con los valores de Loading, 
+```{r}
+pca$loadings
+pca %>% summary()
+```
+
+```{r}
+corrplot(var$contrib, is.corr=FALSE)
+```
+```{r}
+fviz_pca_ind(pca, col.ind = "cornflowerblue", 
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+             repel = TRUE, ggtheme = theme_pander())
+```
+```{r}
+fviz_pca_biplot(pca,
+                col.var = "red", # Variables color
+                col.ind = "cornflowerblue",  # Individuals color
+                repel = TRUE, ggtheme = theme_pander())
+```
+https://torrejonvalenzuela.com/post/2020/11/13/an%C3%A1lisis-de-componentes-principales-datos-usairpollution.html
+
+
+Verificar que las primeras dos componentes principales son:
+$Y1 = 0,5380NI + 0,5126ES+ 0,4081IF + 0,2635MO − 0,1561NE − 0,2535RE − 0,3511ICM$
+$Y2 = 0,5524MO +0,4952RE+ 0,4696ICM+ 0,3756ES + 0,2867NE + 0,05778IF − 0,04908NI$
+
+
+
+a) Grafique las cargas y explicar la interpretación de las componentes principales.
